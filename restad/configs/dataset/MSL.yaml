@@ -21,9 +21,9 @@ model_prefix: ${dataset.${environment}.model_prefix}
 
 
 local:
-  data_prefix: ".../RESTAD/datasets/MSL"
-  save_prefix: ".../RESTAD/datasets/MSL"
-  model_prefix: ".../RESTAD/trained_models"
+  data_prefix: "datasets/MSL"
+  save_prefix: "outputs/MSL"
+  model_prefix: "trained_models"
   
 
 

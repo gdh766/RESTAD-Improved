@@ -1,0 +1,28 @@
+# RESTAD 毕设实验依赖
+#
+# ============================================================================
+# 【重要】这里**故意不列 torch 和 numpy**，原因如下：
+#
+#   1) torch：云镜像（AutoDL 的 PyTorch 镜像）已经预装了 torch 2.1.2+cu121。
+#      如果在这里写 `torch>=2.2`，pip 会把镜像里能直接用的 torch 升级成新版，
+#      白下约 2.5 GB，还可能把 CUDA 版本搞乱。
+#      torch 的安装由 deploy/setup_env.sh 单独判断：只在真的缺失时才装。
+#
+#   2) numpy：镜像预装 numpy 1.26.3。若写 `numpy>=1.24`，pip 会挑 numpy 2.x，
+#      而 **torch 2.1.2 与 numpy 2.x ABI 不兼容**，装完 import torch 就会炸。
+#
+# ============================================================================
+# 已验证过的三套环境，都能跑通同一份代码：
+#   本地开发   ：python 3.10.20 / torch 2.5.1+cu121 / numpy 2.2.6  / sklearn 1.7.2
+#   云服务器   ：python 3.10.8  / torch 2.1.2+cu121 / numpy 1.26.3 / sklearn 待装
+#   作者原始声明：python 3.8     / torch 2.2.2        / numpy 1.24.4 / sklearn 1.3.2
+# 不同版本的浮点运算顺序不同，指标会有千分之几到百分之一量级的差异，属正常；
+# 论文只引用同一台机器跑出来的结果。
+# ============================================================================
+
+scikit-learn        # StandardScaler / MinMaxScaler / 各种指标 / KMeans
+scipy               # 配对 t 检验
+hydra-core==1.3.2   # 原作者用它组织配置，restad/configs 依赖它
+omegaconf>=2.3      # hydra 的配置对象
+PyYAML>=6.0         # 配置读写
+matplotlib          # 画图（report/make_figures）

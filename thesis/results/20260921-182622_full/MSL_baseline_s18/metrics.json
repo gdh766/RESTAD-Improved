@@ -1,0 +1,46 @@
+{
+  "dataset": "MSL",
+  "variant": "baseline",
+  "seed": 18,
+  "epochs": 100,
+  "protocol": "val",
+  "val_ratio": 0.2,
+  "rec_only": {
+    "f1": 0.06467315716272601,
+    "precision": 0.3236658932714617,
+    "recall": 0.03592583054339428,
+    "auc": 0.6295152477335497,
+    "auc_pr": 0.15828704992486253
+  },
+  "simrec_mul": {
+    "f1": 0.06445629492232785,
+    "precision": 0.32325581395348835,
+    "recall": 0.03579706412567602,
+    "auc": 0.6079308643584547,
+    "auc_pr": 0.15227118056160355
+  },
+  "simrec_add": {
+    "f1": 0.05368333924559537,
+    "precision": 0.32850940665701883,
+    "recall": 0.029229976822044812,
+    "auc": 0.5375970051478679,
+    "auc_pr": 0.12134330048697466
+  },
+  "elapsed_sec": 43.36,
+  "overrides": [
+    "dataset=MSL",
+    "seed=18",
+    "model.rbf_dim=128",
+    "model.lr=0.01",
+    "model.weight_decay=1e-05",
+    "model.dropout=0.0",
+    "model.clip_grad=3.0",
+    "model.batch_size=64",
+    "model.num_epochs=100"
+  ],
+  "use_residual_rbf": false,
+  "center_div_lambda": 0.0,
+  "gamma_reg_lambda": 0.0,
+  "robust_norm": false,
+  "rec_error_type": "mse"
+}

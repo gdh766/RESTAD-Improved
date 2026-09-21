@@ -1,0 +1,54 @@
+{
+  "dataset": "MSL",
+  "variant": "Full",
+  "seed": 18,
+  "epochs": 100,
+  "protocol": "val",
+  "val_ratio": 0.2,
+  "rec_only": {
+    "f1": 0.06529597830998644,
+    "precision": 0.26611418047882135,
+    "recall": 0.037213494720576876,
+    "auc": 0.6141729265066032,
+    "auc_pr": 0.1602663865199786
+  },
+  "simrec_mul": {
+    "f1": 0.06334125098970704,
+    "precision": 0.26046511627906976,
+    "recall": 0.036054596961112545,
+    "auc": 0.5990283853727068,
+    "auc_pr": 0.14506851089785328
+  },
+  "simrec_add": {
+    "f1": 0.02004194826380797,
+    "precision": 0.1053921568627451,
+    "recall": 0.011073911923770281,
+    "auc": 0.5443927615251334,
+    "auc_pr": 0.12226538639071084
+  },
+  "elapsed_sec": 44.48,
+  "overrides": [
+    "dataset=MSL",
+    "seed=18",
+    "model.rbf_dim=128",
+    "model.lr=0.01",
+    "model.weight_decay=1e-05",
+    "model.dropout=0.0",
+    "model.clip_grad=3.0",
+    "model.batch_size=64",
+    "model.num_epochs=100",
+    "model.use_residual_rbf=true",
+    "model.center_div_lambda=0.1",
+    "model.gamma_reg_lambda=0.01",
+    "model.gamma_reg_target=-3.0",
+    "model.density_align_lambda=1.0",
+    "model.density_align_target=0.9",
+    "model.robust_norm=true",
+    "model.rec_error_type=l2"
+  ],
+  "use_residual_rbf": true,
+  "center_div_lambda": 0.1,
+  "gamma_reg_lambda": 0.01,
+  "robust_norm": true,
+  "rec_error_type": "l2"
+}

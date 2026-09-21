@@ -1,0 +1,46 @@
+dataset:
+  name: PSM
+  x_dim: 25
+  train_start: 0
+  max_train_size: null
+  test_start: 0
+  max_test_size: null
+  window_size: 100
+  step: 100
+  anomaly_proportion_window: 0.2
+  anormly_ratio: 1
+  data_prefix: ${dataset.${environment}.data_prefix}
+  save_prefix: ${dataset.${environment}.save_prefix}
+  model_prefix: ${dataset.${environment}.model_prefix}
+  local:
+    data_prefix: datasets/PSM
+    save_prefix: outputs/PSM
+    model_prefix: trained_models
+model:
+  type: Transformer_RBF
+  base_model_type: Transformer
+  input_size: ${dataset.x_dim}
+  d_model: 32
+  d_ff: 128
+  n_heads: 8
+  e_layers: 3
+  rbf_dim: 32
+  batch_size: 64
+  num_epochs: 100
+  lr: 0.01
+  weight_decay: 0.001
+  dropout: 0.5
+  clip_grad: 3.0
+  use_residual_rbf: true
+  center_div_lambda: 0.0
+  gamma_reg_lambda: 0.0
+  gamma_reg_target: -2.0
+  robust_norm: false
+  rec_error_type: mse
+  density_align_lambda: 0.0
+  density_align_target: 0.9
+initialization: random
+mode: main_train
+seed: 5
+environment: local
+device: cuda

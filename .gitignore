@@ -151,3 +151,27 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 .DS_Store
+
+# ============================================================================
+# Thesis modifications (gdh): large datasets and run artifacts are NOT tracked
+# ============================================================================
+
+# datasets are downloaded from the source listed in Datasets_info.md
+restad/datasets/
+restad/outputs/
+
+# experiment checkpoints & per-point score arrays.
+# Regeneratable by re-running thesis/run_variants.py; ~390 MB in total.
+thesis/results/**/*.pth
+thesis/results/**/*.npz
+thesis/results/**/*.tar.gz
+
+# run logs
+thesis/*.log
+thesis/*.err
+
+# original paper PDF (please obtain it from arXiv instead)
+docs/paper/*.pdf
+
+# virtual environment
+.venv-restad/

@@ -1,0 +1,46 @@
+{
+  "dataset": "PSM",
+  "variant": "M3",
+  "seed": 1,
+  "epochs": 100,
+  "rec_only": {
+    "f1": 0.13342451181521162,
+    "precision": 0.888663967611336,
+    "recall": 0.0721268380842849,
+    "auc": 0.7719748015531055,
+    "auc_pr": 0.5513373318002517
+  },
+  "simrec_mul": {
+    "f1": 0.13494361475160013,
+    "precision": 0.9311251314405888,
+    "recall": 0.07274295572167913,
+    "auc": 0.8173467258932253,
+    "auc_pr": 0.6061920790068165
+  },
+  "simrec_add": {
+    "f1": 0.14699399559170023,
+    "precision": 0.9827235772357723,
+    "recall": 0.07943810071469647,
+    "auc": 0.7622238005304077,
+    "auc_pr": 0.5697635284715018
+  },
+  "elapsed_sec": 44.41,
+  "overrides": [
+    "dataset=PSM",
+    "seed=1",
+    "model.rbf_dim=32",
+    "model.lr=0.01",
+    "model.weight_decay=0.001",
+    "model.dropout=0.5",
+    "model.clip_grad=3.0",
+    "model.batch_size=64",
+    "model.num_epochs=100",
+    "model.robust_norm=true",
+    "model.rec_error_type=l2"
+  ],
+  "use_residual_rbf": false,
+  "center_div_lambda": 0.0,
+  "gamma_reg_lambda": 0.0,
+  "robust_norm": true,
+  "rec_error_type": "l2"
+}

@@ -350,13 +350,23 @@ def calculate_reconstruction_errors(model, dataloader, cfg, test_mode=False):
     model.eval()
     reconstruction_errors_point = []
     true_labels_point = []
+
+    # 【毕设修改 M3】重建误差口径可选：
+    #   "mse"（默认，原作者做法）= 各维平方误差的均值
+    #   "l2"                     = 各维平方误差之和的平方根，即论文式(2)的 ||x - x̂||₂
+    # 论文正文写的是 L2 范数，而代码实现的是 MSE，两者差一个维度缩放（x_dim），
+    # 会让不同维度的数据集之间的阈值不可比。这里提供开关以对齐论文口径。
+    rec_error_type = str(cfg.model.get("rec_error_type", "mse")).lower()
     
     with torch.no_grad():
         for batch in dataloader:
             inputs = batch[0].to(cfg.device)
             outputs, _, _ = model(inputs)
-                
-            batch_error_point = torch.mean((inputs - outputs) ** 2, dim=2).cpu().numpy() # error per point
+
+            if rec_error_type == "l2":
+                batch_error_point = torch.norm(inputs - outputs, dim=2).cpu().numpy()  # error per point (L2)
+            else:
+                batch_error_point = torch.mean((inputs - outputs) ** 2, dim=2).cpu().numpy() # error per point
             
             reconstruction_errors_point.extend(batch_error_point.flatten())
 
@@ -389,6 +399,29 @@ def calculate_rbf_scores(model, dataloader, cfg):
             rbf_scores_mean.extend(scores_mean.flatten())
 
     return np.array(rbf_scores_mean)
+
+
+
+def minmax_fit_transform(train_values, test_values, clip=False):
+    """
+    MinMax 归一化：只用训练集拟合 scaler，再分别变换训练集与测试集。
+
+    【毕设修改 M3】clip=True 时把变换结果裁剪到 [0, 1]。
+
+    原作者在两处评分函数里直接 new 一个 MinMaxScaler 并先后对重建误差和
+    RBF 分数各 fit 一次；由于每对 fit/transform 是紧邻的，本身没有错。
+    真正的问题是：测试集一旦落在训练集 min/max 区间之外，归一化结果就会
+    超出 [0, 1]，于是 (1 - rbf_score) 可能出现负值、也可能大于 1，
+    乘性融合 εr × εs 中"相似度越高、εs 越小"的语义被破坏。
+    裁剪后 εs 恒在 [0, 1] 内，融合项的含义保持稳定。
+    """
+    scaler = MinMaxScaler()
+    train_out = scaler.fit_transform(np.asarray(train_values).reshape(-1, 1))
+    test_out = scaler.transform(np.asarray(test_values).reshape(-1, 1))
+    if clip:
+        train_out = np.clip(train_out, 0.0, 1.0)
+        test_out = np.clip(test_out, 0.0, 1.0)
+    return train_out, test_out
 
 
 
@@ -434,13 +467,11 @@ def evaluate_RBFrec(rec_errors_tr, rec_errors_te, rbf_score_tr, rbf_score_te, tr
     print("##############################")
     results = {}
     
-    # Normalize the reconstruction errors and RBF scores to the range [0, 1]
-    scaler = MinMaxScaler() # fit on training data
-    rec_errors_tr = scaler.fit_transform(rec_errors_tr.reshape(-1,1))  # transform training data
-    rec_errors_te = scaler.transform(rec_errors_te.reshape(-1,1))  # transform test data
-    
-    rbf_score_tr = scaler.fit_transform(rbf_score_tr.reshape(-1,1))  # transform training data
-    rbf_score_te = scaler.transform(rbf_score_te.reshape(-1,1))  # transform test data
+    # 【毕设修改 M3】归一化统一走 minmax_fit_transform；
+    # robust_norm=True 时把归一化结果裁剪到 [0, 1]，保证 (1 - rbf_score) ∈ [0, 1]。
+    robust_norm = bool(cfg.model.get("robust_norm", False))
+    rec_errors_tr, rec_errors_te = minmax_fit_transform(rec_errors_tr, rec_errors_te, clip=robust_norm)
+    rbf_score_tr, rbf_score_te = minmax_fit_transform(rbf_score_tr, rbf_score_te, clip=robust_norm)
 
     
     for thresh_type in thresh_type_list:
@@ -484,13 +515,11 @@ def evaluate_RBFrec_Addition(rec_errors_tr, rec_errors_te, rbf_score_tr, rbf_sco
     print("##############################")
     results = {}
 
-    # Normalize the reconstruction errors and RBF scores to the range [0, 1]
-    scaler = MinMaxScaler() # fit on training data
-    rec_errors_tr = scaler.fit_transform(rec_errors_tr.reshape(-1,1))  # transform training data
-    rec_errors_te = scaler.transform(rec_errors_te.reshape(-1,1))  # transform test data
-    
-    rbf_score_tr = scaler.fit_transform(rbf_score_tr.reshape(-1,1))  # transform training data
-    rbf_score_te = scaler.transform(rbf_score_te.reshape(-1,1))  # transform test data
+    # 【毕设修改 M3】归一化统一走 minmax_fit_transform；
+    # robust_norm=True 时把归一化结果裁剪到 [0, 1]，保证 (1 - rbf_score) ∈ [0, 1]。
+    robust_norm = bool(cfg.model.get("robust_norm", False))
+    rec_errors_tr, rec_errors_te = minmax_fit_transform(rec_errors_tr, rec_errors_te, clip=robust_norm)
+    rbf_score_tr, rbf_score_te = minmax_fit_transform(rbf_score_tr, rbf_score_te, clip=robust_norm)
 
 
     for thresh_type in thresh_type_list:

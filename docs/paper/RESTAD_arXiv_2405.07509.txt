@@ -1,0 +1,691 @@
+===== PAGE 1 =====
+*Corresponding Author: r.ghorbani@tudelft.nl
+RESTAD: REconstruction and Similarity based Transformer for time
+series Anomaly Detection
+Preprint
+Ramin Ghorbani1∗
+, Marcel J.T. Reinders1, and David M.J. Tax1
+1Pattern Recognition Lab, Delft University of Technology, Delft, Netherlands
+Abstract
+Anomaly detection in time series data is crucial across various domains. The scarcity of labeled data for
+such tasks has increased the attention towards unsupervised learning methods. These approaches, often
+relying solely on reconstruction error, typically fail to detect subtle anomalies in complex datasets. To
+address this, we introduce RESTAD, an adaptation of the Transformer model by incorporating a layer of
+Radial Basis Function (RBF) neurons within its architecture. This layer fits a non-parametric density in the
+latent representation, such that a high RBF output indicates similarity with predominantly normal training
+data. RESTAD integrates the RBF similarity scores with the reconstruction errors to increase sensitivity to
+anomalies. Our empirical evaluations demonstrate that RESTAD outperforms various established baselines
+across multiple benchmark datasets.
+Keywords Time Series, Anomaly Detection, Radial Basis Function (RBF) kernel, Transformer
+1 I ntroduction
+Anomalies in time series data, i.e., unexpected patterns or
+deviations from normal behavior, can signify critical is-
+sues across various domains, from financial fraud to life-
+threatening health conditions. Hence, accurate anomaly de-
+tection is important. Given the rarity of anomalies and, thus,
+the lack of sufficient labeled data, fully supervised methods
+are less suited. Consequently, unsupervised learning meth-
+ods have gained increasing attention [ 1]. These methods
+do not explicitly require labeled anomaly examples, mak-
+ing them ideal for the detection of unknown or unexpected
+anomalies [2].
+Various classic unsupervised techniques like distance-based
+One-Class SVM (OC-SVM) [3] or density-based Local Out-
+lier Factor (LOF) [4], have been widely used. However, they
+struggle with the temporal dependencies, high dimensionality,
+and complex generalization demands of time series data [5].
+Recent developments in deep learning offer promising solu-
+tions for handling these challenges [ 6]. Architectures like
+Transformers and LSTMs excel at capturing temporal pat-
+terns and automatically learning hierarchical and non-linear
+features from time series data [7, 8, 9].
+Building on these advancements, several effective anomaly
+detection methods have been developed, largely focusing
+on the reconstruction error as a primary anomaly crite-
+rion [10, 11, 12]. These methods typically assess the devia-
+tions between a given input and its reconstruction to identify
+anomalies. The underlying assumption is that typical data
+will have lower reconstruction errors, whereas anomalous
+data will exhibit higher errors due to the unfamiliarity of the
+model with these patterns [11, 13, 14].
+A major issue of using the reconstruction error for anomaly
+detection is over-generalization [15]. Models fitted to capture
+the predominant patterns in the training data, generalize these
+patterns to include subtle variations as well. Therefore subtle
+anomalies can also be reconstructed well by these models. As
+a result, these anomalies are less distinguishable from typical
+patterns, reducing the model’s detection sensitivity [16]. This
+effect is depicted in Figure 1.a, where the original signal
+includes a subtle anomaly at time point t0 and a significant
+anomaly at t1. The reconstructed signal is a slightly smoothed
+version of the original signal, and by using the reconstruction
+error alone, the subtle anomaly is missed as the reconstruction
+error remains below the detection threshold, as shown in
+Figure 1.b.
+Efforts have been made to improve unsupervised anomaly
+detection by adding other types of scores to the conventional
+reconstruction error-based anomaly scores. For instance,
+AnomalyTrans [17] utilizes the concept of association dis-
+crepancy, which considers the similarity of a time point with
+its adjacent time points. It then reweights the reconstruction
+error accordingly to formulate the final composite anomaly
+score. However, in this method a normalization is performed,
+which can exaggerate the discrepancy scores for normal time
+points when no anomalies are present, potentially leading to
+false positives. This can misleadingly highlight normal data
+points as anomalies. Although this approach is effective for
+identifying clear outliers, it can inadvertently misrepresent
+subtle normal fluctuations as anomalies.
+To overcome the challenges of scoring based on reconstruc-
+tion error and the limitations of the association discrepancy
+method, we propose combining the reconstruction error with
+a specialized non-linear transformation like the Radial Basis
+arXiv:2405.07509v1  [cs.LG]  13 May 2024
+
+===== PAGE 2 =====
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection 2
+Original Signal
+Reconstructed  Signal
+Reconstruction Error
+Time
+Signal Value
+Subtle
+Anomaly
+Significant
+Anomaly
+Missed
+Anomaly
+Threshold 
+Detected
+Anomaly
+Normal Data Point
+Anomaly Data Point Significant
+Anomaly
+Subtle
+Anomaly
+RBFCenter
+RBF Layer
+t1t0
+Combined Score
+Reconstruction Score
+Dis-Similarity Score
+(a) (b)
+t1t0 Time
+Transformer Layer Transformer Layer
+Threshold 
+(d)
+t1t0 Time
+Anomaly Score
+(c)
+Embedding Dimension 1 
+Embedding Dimension 2 
+Input  
+Signal
+Reconstructed
+Signal
+Figure 1: Comparison of traditional reconstruction and RBF-enhanced anomaly detection: a) Original signal with subtle and
+significant anomalies compared to its reconstruction. b) Reconstruction errors for the signals in (a), highlighting challenges
+in detecting subtle anomalies. c) Visualization of a model integrated with an RBF , shown via a 2D scatter plot that includes
+typical data, subtle and significant anomalies, and the RBF center with its influence radius, showing the RBF’s ability to
+differentiate typical points from anomalies. d) Enhanced anomaly score using the RBF , which shows improved detection of
+subtle anomalies.
+Function (RBF) kernel [ 18]. The RBF kernel generates a
+similarity score that measures how close a data point is to
+a reference point or center, making it highly e ffective for
+anomaly detection. Anomalies, data points that deviate (are
+far away) from typical patterns, yield lower similarity scores
+with the RBF kernel, thus directly measuring how anoma-
+lous a point is. This score can e ffectively complement the
+reconstruction error and improve the sensitivity to subtle
+anomalies that might be overlooked by the reconstruction
+error. The e ffectiveness of combining RBF scores with re-
+construction error is illustrated in Figure 1.c, where an RBF
+kernel is applied to typical data in the latent representation
+of a Transformer. By combining reconstruction error with
+RBF similarity scores, we create a comprehensive composite
+anomaly score that not only captures deviations from ex-
+pected patterns but also ensures that subtle anomalies are
+still flagged. This composite anomaly score is shown in Fig-
+ure 1.d, where the anomaly scores for both anomaly types
+are now above the detection threshold.
+This paper presents an adaptation of the Transformer model,
+chosen for its ability to capture temporal dependencies in
+sequential data. By integrating the RBF neurons into the
+Transformer architecture, we develop a model that syner-
+gistically utilizes both similarity scores and reconstruction
+error to compute a distinctive anomaly score. Through an
+extensive evaluation, we show that this new REconstruction
+and Similarity based Transformer for time series Anomaly
+Detection, RESTAD, outperforms existing baselines across a
+range of benchmark datasets.
+2 M ethodology
+Assume that the observed time series dataset consists of N
+sequences with length T. Each sequence in this dataset is
+denoted by Xi = xi,t
+	T
+t=1 where xi,t represents the observed
+time point for i-th sequence at time t, having d dimensions,
+i.e., xi,t∈ Rd. Our task is to determine if a given xi,t shows
+any anomalous behavior or not.
+2.1 RESTAD Framework
+In our study, we incorporate the anomaly detection mecha-
+nism into the vanilla Transformer [8] through a specific layer
+of RBF neurons, see Figure1.c. This RBF layer operates on
+the latent representations from the preceding layer, denoted
+byHi = hi,t
+	T
+t=1, where hi,t∈ Rdh. This layer computes the
+similarity of each data point hi,t to a set of learnable reference
+points (centers), denoted byC ={cm}M
+m=1, where cm∈ Rdh.
+This computation results in the RBF output, Zi = zi,t
+	T
+t=1,
+where zi,t∈ RM, which then serves as the input to subsequent
+layer of the model. Specifically, the RBF similarity output
+for each data point relative to each center is defined by:
+zm
+i,t(hi,t, cm) = exp
+ 
+−1
+2eγ∥hi,t− cm∥2
+!
+(1)
+Here, the parameter γ controls the width of the RBF, influ-
+encing how it considers data points at varying distances from
+the center. This parameter is initialized and adjusted during
+training. Using the exponential of γ ensures the positivity
+of the scale parameter, simplifying the optimization process
+without enforcing a positivity constraint.
+Anomaly Score : RESTAD is trained by minimizing the
+Mean Squared Error (MSE) to achieve accurate reconstruc-
+tion. For anomaly detection, a composite anomaly score,
+RES T ADscore, is introduced by combining the normalized
+RBF similarity scores and reconstruction errors. The normal-
+ization is based on MinMax to ensure comparability. The
+RBF similarity score measures how closely xi,t aligns with
+the learned centers. A higher similarity suggests normal
+behavior, whereas a lower similarity (or greater distance to
+the RBF centers) signals anomalies. This score is derived
+from averaging the RBF output zi,t across all centers. The
+reconstruction error is the squared di fference between the
+actual data xi,t and its reconstruction ˆxi,t. The RES T ADscore
+is formulated as:
+
+===== PAGE 3 =====
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection 3
+Multi-Head  
+Attention (8x) Dropout + Norm Feed-Forward
+Input Encoder
+Layer 1
+Encoder
+Layer 2
+Encoder
+Layer 3
+Fully
+Connected
+Layer
+Data  
+Embedding OutputRBF Layer
++ Norm
+Figure 2: Overview of the proposed RESTAD model. Here, the RBF layer is added after the second encoder layer.
+RES T ADscore(xi,t) =ϵr×ϵs (2)
+whereϵr =||xi,t− ˆxi,t||2 represents the reconstruction error,
+andϵs =
+
+1− 1
+M
+PM
+m=1 zm
+i,t
+
+measures dissimilarity. This com-
+bination highlights subtle anomalies characterized by both
+low reconstruction errors and RBF scores, as well as signifi-
+cant anomalies with high reconstruction errors or low RBF
+scores.
+Initialization of RBF Layer Parameters : Proper initializa-
+tion of the RBF parameters, including the centers c and scale
+parameterγ, is crucial for our methodology. We explore two
+initialization strategies: Random and K-means, to assess their
+impact on model performance. For Random initialization,
+parameters c and γ are drawn from a normal distribution
+with zero mean and unit standard deviation. Although it
+is simple, it may lead to slower convergence, risk of local
+minima, and may not e ffectively represent the data distri-
+bution initially, possibly resulting in instability. In contrast,
+K-means initialization uses the inherent data structure for a
+more representative starting point. In this approach, initially,
+a base model (without the integrated RBF layer) is trained to
+minimize the MSE of reconstruction:
+MSE = 1
+N
+NX
+i=1
+Xi− ˆXi
+2
+F (3)
+After achieving satisfactory reconstruction accuracy from
+the base model, the latent representation is extracted from
+the specific layer where the RBF layer is intended to sub-
+sequently be integrated. This representation is then used to
+initialize c via the K-means clustering algorithm. The scale
+parameterγ is initialized using ˜σ2, the mean squared distance
+from each data point to its nearest cluster center:
+˜σ2 = 1
+NT
+NX
+i=1
+TX
+t=1
+min
+m
+hi,t− cm
+2
+, ∀m∈ [1, M] (4)
+Here, hi,t denotes the latent representation vector of the i-th
+sample at the t-th time step, and cm is the m-th cluster center
+obtained from the K-means algorithm. This value, ˜σ2, is
+used to initializeγ asγ = 1
+˜σ2 , ensuring that the RBF function
+has a spread informed by the average dispersion of the data
+points around their respective centers.
+3 E xperimental Setup
+3.1 Datasets and Preprocessing
+We use three public widely used benchmark datasets for our
+experiments: 1) Server Machine Dataset (SMD) [11], 2) Mars
+Science Laboratory (MSL) Rover [9], and 3) Pooled Server
+Metrics (PSM) [19]. Further information on each dataset is
+available in our code repository1.
+Data preprocessing involves normalizing each feature to
+zero mean and unit variance across the time dimension.
+Subsequently, the normalized signal is segmented into non-
+overlapped sliding windows [20] with a fixed length of 100
+data points, a common setting based on previous related
+works [17, 10].
+3.2 Implementation
+RESTAD Model: The RESTAD model is an adaptation of a
+vanilla Transformer, incorporating an RBF kernel layer as de-
+tailed in Figure 2. It includes a DataEmbedding module that
+combines both token and positional embeddings, followed
+by an encoder with three layers. Each layer includes a multi-
+head self-attention mechanism and feed-forward networks.
+The model has a latent dimension of 32, an intermediate
+feed-forward network layer with a dimension of 128, and
+8 attention heads. The RBF layer is placed after the sec-
+ond encoder layer (other placements are also possible, see
+section 4.1). Optimization is performed using the ADAM
+optimizer, and hyperparameters are determined through sys-
+tematic search to optimize reconstruction task performance.
+Additional hyperparameter details are available in our code
+repository1.
+Evaluation: Anomaly scores (Eq. 2) exceeding a threshold
+δ are identified as anomalies. Performance is evaluated using
+the F1-score for threshold-dependent evaluation. Here, we
+follow [17] by settingδ to label a predefined proportion of
+data points as anomalies (0.5% for SMD, 1% for others). For
+threshold-independent analysis, we use AUC-ROC, AUC-PR,
+VUS-ROC, and VUS-PR metrics [21]. We exclude the point-
+adjustment method [22] due to its overestimation [23]. Our
+model is compared against baselines and state-of-the-arts
+models: LSTM [ 9], vanilla Transformer [17], USAD [13],
+PatchAD [12], AnomalyTrans [17], and DCdetector [10].
+1https://github.com/Raminghorbanii/RESTAD
+
+===== PAGE 4 =====
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection 4
+Table 1: Performance metrics of baselines and RESTAD on test sets. Initialization methods are denoted as (R) for Random and
+(K) for K-means. For all measures, a higher value indicates better anomaly detection performance.
+Dataset SMD MSL PSM
+Models
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+LSTM 0.12 0 .74 0 .17 0 .79 0 .20 0.06 0 .56 0 .14 0 .63 0 .19 0.11 0 .73 0 .50 0 .72 0 .51
+USAD 0.13 0 .63 0 .11 0 .72 0 .14 0.06 0 .53 0 .14 0 .59 0 .18 0.07 0 .60 0 .41 0 .61 0 .43
+PatchAD 0.01 0 .50 0 .04 0 .61 0 .08 0.03 0 .50 0 .10 0 .57 0 .15 0.02 0 .50 0 .28 0 .55 0 .33
+Transformer 0.11 0 .75 0 .19 0 .80 0 .22 0.06 0 .56 0 .14 0 .63 0 .19 0.13 0 .71 0 .49 0 .70 0 .50
+AnomalyTrans 0.03 0 .49 0 .04 0 .50 0 .07 0.02 0 .49 0 .10 0 .52 0 .14 0.02 0 .51 0 .30 0 .53 0 .34
+DCDetector 0.01 0 .50 0 .04 0 .51 0 .08 0.02 0 .50 0 .11 0 .58 0 .15 0.02 0 .50 0 .28 0 .52 0 .32
+RESTAD (R) 0.23 0.78 0.23 0.82 0.24 0.07 0.68 0.18 0.72 0.23 0.15 0.79 0.59 0.76 0.57
+RESTAD (K) 0.20 0.79 0.24 0.83 0.25 0.07 0.66 0.18 0.71 0.23 0.14 0.79 0.57 0.76 0.56
+4 R esults
+Our empirical results, as detailed in Table 1, highlight
+the e ffectiveness of the RESTAD for anomaly detection.
+RESTAD outperforms all baseline models across the bench-
+mark datasets and evaluation metrics, regardless of the RBF
+initialization strategy. While there are slight performance
+differences between initialization methods, these variations
+are not significant enough to establish the superiority of one
+method over another.
+To visually show detection di fferences, Figure 3 displays
+anomaly scores for a short segment of the SMD dataset.
+PatchAD, DCdetector, and AnomalyTrans models reveal
+many false detections, with DCdetector showing a pattern
+of repeated false positives and PatchAD resembling ran-
+dom scoring. LSTM, USAD, and Transformer models miss
+some anomalies or detect them weakly; for example, the first
+anomaly area is undetected by USAD, and only weakly de-
+tected by LSTM and Transformer. In contrast, the RESTAD
+model demonstrates robust detection, effectively identifying
+all anomaly sections.
+0 500 1000 1500 2000 2500
+0
+5Score
+LSTM
+0 500 1000 1500 2000 2500
+0
+200Score
+USAD
+0 500 1000 1500 2000 2500
+0.005
+0.010Score
+PatchAD
+0 500 1000 1500 2000 2500
+0
+2Score
+Transformer
+0 500 1000 1500 2000 2500
+0
+1Score
+AnomalyTrans
+0 500 1000 1500 2000 2500
+0
+1Score
+DCdetector
+0 500 1000 1500 2000 2500
+0.000
+0.002Score
+RESTAD
+Figure 3: Anomaly scores of different models for a segment
+of SMD dataset. The highlighted regions in red indicate the
+true anomaly periods (labeled by an expert).
+4.1 Ablation Analysis
+The ablation experiments are based on the RBF layer with
+random initialization. This decision is based on our find-
+ings that random initialization is as effective as the K-means
+strategy (see Table 1), while offering greater simplicity and
+computational efficiency.
+Anomaly Score Criterion : Table 2 highlights the impact
+of integrating the RBF score into anomaly detection. Mul-
+tiplying the RBF layer’s dissimilarity score (ϵs) with the re-
+construction error (ϵr) to form the composite anomaly score
+(ϵs×ϵr) is found to be the most effective, consistently enhanc-
+ing detection across all benchmarks and metrics. Adding the
+RBF layer to the vanilla Transformer with only reconstruction
+errorϵr as the anomaly score offers marginal improvements
+on some datasets. In contrast, using only the dissimilarity
+score (ϵs) or adding it directly to the reconstruction error
+(ϵs +ϵr) shows no significant benefits.
+Figure 4 visually illustrates the superiority of our composite
+anomaly score over the traditional reconstruction score (ϵr) by
+showing subsets from all three datasets and the corresponding
+anomaly scores. Our anomaly score e ffectively identifies
+anomalies that are overlooked by the model relying solely
+on reconstruction error, with detections notably stronger and
+typically exceeding the threshold. Note that the thresholds
+depicted in the figures are the best optimized ones based
+on the entire dataset. Altering this threshold for the subset
+of data presented in the figures could diminish the overall
+performance and is therefore not possible.
+RBF Layer Placement:We explored the flexibility of RBF
+layer placement within the vanilla Transformer by integrating
+it after each of the three encoder layers. Figure 5 demon-
+strates that performance remains robust across all datasets,
+irrespective of the RBF layer’s location. Note that placing the
+RBF layer after the second encoder layer results in marginally
+better performance across all datasets. This slight advantage
+influenced our decision to position the RBF layer after the
+second layer in the final model architecture (see Figure 2).
+
+===== PAGE 5 =====
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection 5
+Table 2: Effect of integrating RBF layer and the choice of anomaly score. For all measures, a higher value indicates better
+anomaly detection performance.
+Architecture Anomaly Criterion
+SMD MSL PSM
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+F1-Score
+AUC-ROC
+AUC-PR
+VUS-ROC
+VUS-PR
+Transformer ϵr 0.11 0 .75 0 .19 0 .80 0 .22 0.06 0 .56 0 .14 0 .63 0 .19 0.13 0 .71 0 .49 0 .70 0 .50
+RESTAD ϵr 0.11 0 .77 0 .18 0 .81 0 .21 0.07 0 .63 0 .16 0 .69 0 .21 0.13 0 .75 0 .56 0 .74 0 .55
+RESTAD ϵs 0.01 0 .44 0 .03 0 .52 0 .07 0.01 0 .43 0 .08 0 .48 0 .12 0.01 0 .32 0 .20 0 .37 0 .25
+RESTAD ϵr +ϵs 0.04 0 .57 0 .06 0 .60 0 .10 0.07 0 .61 0 .16 0 .65 0 .20 0.01 0 .68 0 .49 0 .59 0 .45
+RESTAD ϵr × ϵs 0.23 0.78 0.23 0.82 0.24 0.07 0.68 0.18 0.72 0.23 0.15 0.79 0.59 0.76 0.57
+0 20 40 60 80 100
+2
+3 SMD Dataset
+0 20 40 60 80 100
+0
+2
+4Anomaly Score
+1e 1
+Thresholdr score
+0 20 40 60 80 100
+0
+1Anomaly Score
+1e 3
+Threshold
+r × s score
+(a)
+0 20 40 60 80 100
+0
+1
+1e1
+MSL Dataset
+0 20 40 60 80 100
+0
+1Anomaly Score
+1e1
+Thresholdr score
+0 20 40 60 80 100
+0
+2
+4Anomaly Score
+1e 3
+Threshold
+r × s score
+ (b)
+0 20 40 60 80 100
+2.5
+5.0
+7.5 PSM Dataset
+0 20 40 60 80 100
+0
+1Anomaly Score
+Thresholdr score
+0 20 40 60 80 100
+0.0
+0.5
+1.0Anomaly Score
+1e 2
+Threshold
+r × s score
+ (c)
+Figure 4: Effect of our composite anomaly score (ϵr×ϵs) compared to reconstruction error (ϵr) across segments of all datasets.
+The highlighted regions in red indicate the true anomaly periods (labeled by an expert).
+SMD MSL PSM
+Datasets
+0.0
+0.2
+0.4
+0.6
+0.8
+1.0AUC-ROC Metric Value
+RBF after 1st layer
+RBF after 2nd layer
+RBF after 3rd layer
+Figure 5: RESTAD Performance with varying RBF layer
+placements.
+Number of RBF Centers : Figure 6 represents the impact
+of the number of centers, ranging from 8 to 512, in the RBF
+layer of RESTAD. Results indicate that the optimal number
+of RBF centers is data-dependent. Additionally, beyond a
+certain threshold, increasing the number of centers does not
+enhance performance and may even reduce it.
+5 D iscussion and Conclusion
+We introduced RESTAD, an adaptation of Transformers for
+unsupervised anomaly detection that improves on the lim-
+itations of using only reconstruction error as the anomaly
+score. By integrating an RBF layer into the Transformer,
+we combined RBF similarity scores with reconstruction er-
+ror, enhancing the sensitivity to subtle anomalies. RESTAD
+0 100 200 300 400 500
+Number of RBF centers
+0.1
+0.2
+0.3
+0.4
+0.5
+0.6
+0.7
+0.8Mean AUC
+MSL
+SMD
+PSM
+Figure 6: RESTAD mean performance across varying num-
+bers of RBF centers. Shaded areas indicate ± standard devi-
+ation, illustrating variability across multiple runs.
+consistently outperforms established baselines across various
+datasets and evaluation metrics.
+Our findings reveal that RESTAD’s performance is relatively
+invariant to RBF layer initialization methods, indicating ro-
+bustness against initialization variability. The significant per-
+formance gains are primarily due to the multiplicative fusion
+of RBF similarity scores with reconstruction error, markedly
+improving anomaly detection capabilities. The RBF layer’s
+placement within the architecture did not significantly affect
+performance, revealing architectural flexibility in integrating
+the RBF layer. However, the optimal number of RBF centers
+is data-dependent. These findings motivate future studies
+for the exploration of integrating RBF layers into other deep
+learning architectures for anomaly detection tasks.
+
+===== PAGE 6 =====
+RESTAD: REconstruction and Similarity based Transformer for time series Anomaly Detection 6
+Acknowledgements
+Funding: This work was supported by the Dutch Research
+Council (NWO) [grant numbers 628.011.214].
+References
+[1] Varun Chandola, Arindam Banerjee, and Vipin Kumar.
+Anomaly detection: A survey. ACM computing surveys
+(CSUR), 41(3):1–58, 2009.
+[2] Ramin Ghorbani, Marcel JT Reinders, and David MJ Tax.
+Personalized anomaly detection in ppg data using representa-
+tion learning and biometric identification. Biomedical Signal
+Processing and Control, 94:106216, 2024.
+[3] Bernhard Schölkopf, Robert C Williamson, Alex Smola, John
+Shawe-Taylor, and John Platt. Support vector method for
+novelty detection. Advances in neural information processing
+systems, 12, 1999.
+[4] Markus M Breunig, Hans-Peter Kriegel, Raymond T Ng, and
+Jörg Sander. Lof: identifying density-based local outliers. In
+Proceedings of the 2000 ACM SIGMOD international confer-
+ence on Management of data, pages 93–104, 2000.
+[5] Nesryne Mejri, Laura Lopez-Fuentes, Kankana Roy, Pavel
+Chernakov, Enjie Ghorbel, and Djamila Aouada. Unsuper-
+vised anomaly detection in time-series: An extensive evalua-
+tion and analysis of state-of-the-art methods. arXiv preprint
+arXiv:2212.03637, 2022.
+[6] Kukjin Choi, Jihun Yi, Changhwa Park, and Sungroh Yoon.
+Deep learning for anomaly detection in time-series data: re-
+view, analysis, and guidelines. IEEE Access , 9:120043–
+120065, 2021.
+[7] Shreshth Tuli, Giuliano Casale, and Nicholas R Jennings.
+Tranad: Deep transformer networks for anomaly detection in
+multivariate time series data.arXiv preprint arXiv:2201.07284,
+2022.
+[8] Ashish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszko-
+reit, Llion Jones, Aidan N Gomez, Łukasz Kaiser, and Illia
+Polosukhin. Attention is all you need. Advances in neural
+information processing systems, 30, 2017.
+[9] Kyle Hundman, Valentino Constantinou, Christopher Laporte,
+Ian Colwell, and Tom Soderstrom. Detecting spacecraft
+anomalies using lstms and nonparametric dynamic threshold-
+ing. In Proceedings of the 24th ACM SIGKDD international
+conference on knowledge discovery & data mining, pages
+387–395, 2018.
+[10] Yiyuan Yang, Chaoli Zhang, Tian Zhou, Qingsong Wen, and
+Liang Sun. Dcdetector: Dual attention contrastive representa-
+tion learning for time series anomaly detection. InProceedings
+of the 29th ACM SIGKDD Conference on Knowledge Discov-
+ery and Data Mining, pages 3033–3045, 2023.
+[11] Ya Su, Youjian Zhao, Chenhao Niu, Rong Liu, Wei Sun, and
+Dan Pei. Robust anomaly detection for multivariate time series
+through stochastic recurrent neural network. In Proceedings
+of the 25th ACM SIGKDD international conference on knowl-
+edge discovery & data mining, pages 2828–2837, 2019.
+[12] Zhijie Zhong, Zhiwen Yu, Yiyuan Yang, Weizheng Wang, and
+Kaixiang Yang. Patchad: Patch-based mlp-mixer for time
+series anomaly detection. arXiv preprint arXiv:2401.09793,
+2024.
+[13] Julien Audibert, Pietro Michiardi, Frédéric Guyard, Sébastien
+Marti, and Maria A Zuluaga. Usad: Unsupervised anomaly
+detection on multivariate time series. In Proceedings of the
+26th ACM SIGKDD international conference on knowledge
+discovery & data mining, pages 3395–3404, 2020.
+[14] Daehyung Park, Yuuna Hoshi, and Charles C Kemp. A mul-
+timodal anomaly detector for robot-assisted feeding using an
+lstm-based variational autoencoder. IEEE Robotics and Au-
+tomation Letters, 3(3):1544–1551, 2018.
+[15] Tianzi Zhao, Liang Jin, Xiaofeng Zhou, Shuai Li, Shurui Liu,
+and Jiang Zhu. Unsupervised anomaly detection approach
+based on adversarial memory autoencoders for multivariate
+time series. Computers, Materials & Continua, 76(1), 2023.
+[16] Haoyi Zhong, Yongjiang Zhao, and Chang Gyoon Lim. Ab-
+normal state detection using memory-augmented autoencoder
+technique in frequency-time domain. KSII Transactions on In-
+ternet and Information Systems (TIIS), 18(2):348–369, 2024.
+[17] Jiehui Xu, Haixu Wu, Jianmin Wang, and Mingsheng Long.
+Anomaly transformer: Time series anomaly detection with
+association discrepancy. arXiv preprint arXiv:2110.02642,
+2021.
+[18] Mark JL Orr et al. Introduction to radial basis function net-
+works, 1996.
+[19] Ahmed Abdulaal, Zhuanghua Liu, and Tomer Lancewicki.
+Practical approach to asynchronous multivariate time series
+anomaly detection and localization. In Proceedings of the
+27th ACM SIGKDD conference on knowledge discovery &
+data mining, pages 2485–2494, 2021.
+[20] Lifeng Shen, Zhuocong Li, and James Kwok. Timeseries
+anomaly detection using temporal hierarchical one-class net-
+work. Advances in Neural Information Processing Systems,
+33:13016–13026, 2020.
+[21] John Paparrizos, Paul Boniol, Themis Palpanas, Ruey S Tsay,
+Aaron Elmore, and Michael J Franklin. V olume under the
+surface: a new accuracy evaluation measure for time-series
+anomaly detection. Proceedings of the VLDB Endowment, 15
+(11):2774–2787, 2022.
+[22] Haowen Xu, Wenxiao Chen, Nengwen Zhao, Zeyan Li, Jiahao
+Bu, Zhihan Li, Ying Liu, Youjian Zhao, Dan Pei, Yang Feng,
+et al. Unsupervised anomaly detection via variational auto-
+encoder for seasonal kpis in web applications. In Proceedings
+of the 2018 world wide web conference, pages 187–196, 2018.
+[23] Siwon Kim, Kukjin Choi, Hyun-Soo Choi, Byunghan Lee, and
+Sungroh Yoon. Towards a rigorous evaluation of time-series
+anomaly detection. In Proceedings of the AAAI Conference
+on Artificial Intelligence, volume 36, pages 7194–7201, 2022.

@@ -152,12 +152,26 @@ class EncoderLayer(nn.Module):
     
 
 class Encoder(nn.Module):
-    def __init__(self, encoder_layers, rbf_layer=None, modified_d_model=None, norm_layer=None):
+    # 【毕设修改 M1】新增 use_residual_rbf / d_model 两个参数。
+    #   use_residual_rbf=False 时行为与原作者代码完全一致（x = rbf_out）。
+    #   use_residual_rbf=True  时改为门控残差注入：
+    #       h = W(x)                        # d_model -> rbf_dim 的旁路投影
+    #       x = h + sigmoid(gate) ⊙ rbf_out  # gate 可学习，初始为 0 -> 0.5
+    #   动机：原做法让 RBF 输出直接顶替第二层隐表示，第三层与最终投影都建立在
+    #   相似度特征上，主干的语义信息被丢弃；门控残差保留主干通路，把 RBF 作为
+    #   一路"相似度旁路"叠加进来。
+    def __init__(self, encoder_layers, rbf_layer=None, modified_d_model=None, norm_layer=None,
+                 use_residual_rbf=False, d_model=None):
         super(Encoder, self).__init__()
         self.layers = nn.ModuleList(encoder_layers)
         self.rbf_layer = rbf_layer
         self.modified_d_model = modified_d_model
         self.norm = norm_layer
+        self.use_residual_rbf = use_residual_rbf
+
+        if self.use_residual_rbf and rbf_layer is not None:
+            self.rbf_proj = nn.Linear(d_model, modified_d_model)
+            self.rbf_gate = nn.Parameter(torch.zeros(modified_d_model))
 
     def forward(self, x, attn_mask=None):
         rbf_out = None
@@ -171,7 +185,11 @@ class Encoder(nn.Module):
                 second_layer_out = x  # Save the output of the second layer
                 if self.rbf_layer:
                     rbf_out = self.rbf_layer(x)
-                    x = rbf_out
+                    if self.use_residual_rbf:
+                        # 【毕设修改 M1】门控残差注入，替代原来的整段替换
+                        x = self.rbf_proj(x) + torch.sigmoid(self.rbf_gate) * rbf_out
+                    else:
+                        x = rbf_out
                     
         if self.norm:
             x = self.norm(x)
@@ -226,7 +244,16 @@ class Transformer_RBF(nn.Module):
         ]
 
         # Encoder
-        self.encoder = Encoder(encoder_layers, rbf_layer=self.rbf_layer, modified_d_model=modified_d_model, norm_layer=torch.nn.LayerNorm(modified_d_model))
+        # 【毕设修改 M1】use_residual_rbf 从配置读取，默认 False 即原论文行为
+        self.use_residual_rbf = bool(cfg.model.get("use_residual_rbf", False))
+        self.encoder = Encoder(
+            encoder_layers,
+            rbf_layer=self.rbf_layer,
+            modified_d_model=modified_d_model,
+            norm_layer=torch.nn.LayerNorm(modified_d_model),
+            use_residual_rbf=self.use_residual_rbf,
+            d_model=cfg.model.d_model,
+        )
 
         self.projection = nn.Linear(modified_d_model, cfg.model.input_size)
 

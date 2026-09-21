@@ -21,6 +21,23 @@ dropout: 0
 clip_grad: 3
 
 
+# ============================================================================
+# 【毕设修改开关】
+# 默认值全部对应"原论文 / 原作者代码"的行为，因此不加任何 override 时，
+# 本仓库的运行结果与作者原始实现一致。
+# 做消融时用 hydra override 打开，例如：
+#   python run_variants.py --variants M1 --extra model.use_residual_rbf=true
+# ============================================================================
+use_residual_rbf: false   # M1: true = RBF 门控残差注入；false = 原作者的整段替换
+center_div_lambda: 0.0    # M2: 中心两两余弦相似度的惩罚权重（0 = 关闭）
+gamma_reg_lambda: 0.0     # M2: log_gamma 偏离目标值的惩罚权重（0 = 关闭）
+gamma_reg_target: -2.0    # M2: log_gamma 的目标值
+robust_norm: false        # M3: true = 归一化后裁剪到 [0, 1]
+rec_error_type: "mse"     # M3: "mse"（原实现） 或 "l2"（论文式(2)的 ||x-x̂||₂）
+density_align_lambda: 0.0 # M5: 密度对齐损失的权重（0 = 关闭）
+density_align_target: 0.9 # M5: 正常训练窗口的平均 RBF 输出要贴近的目标值
+
+
 
 
 

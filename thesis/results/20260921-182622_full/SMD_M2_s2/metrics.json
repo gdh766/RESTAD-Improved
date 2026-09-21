@@ -1,0 +1,49 @@
+{
+  "dataset": "SMD",
+  "variant": "M2",
+  "seed": 2,
+  "epochs": 100,
+  "protocol": "val",
+  "val_ratio": 0.2,
+  "rec_only": {
+    "f1": 0.050463147127351254,
+    "precision": 0.15443478260869564,
+    "recall": 0.030158945795408232,
+    "auc": 0.6544105160552565,
+    "auc_pr": 0.11008674650595215
+  },
+  "simrec_mul": {
+    "f1": 0.07245160730302942,
+    "precision": 0.2446746140316592,
+    "recall": 0.042521396549381876,
+    "auc": 0.6229861880556531,
+    "auc_pr": 0.09173099584269952
+  },
+  "simrec_add": {
+    "f1": 0.04490222421256904,
+    "precision": 0.18563317699333498,
+    "recall": 0.02554000815106643,
+    "auc": 0.485372730438476,
+    "auc_pr": 0.063641925165728
+  },
+  "elapsed_sec": 889.27,
+  "overrides": [
+    "dataset=SMD",
+    "seed=2",
+    "model.rbf_dim=256",
+    "model.lr=0.01",
+    "model.weight_decay=0.001",
+    "model.dropout=0.0",
+    "model.clip_grad=1.5",
+    "model.batch_size=64",
+    "model.num_epochs=100",
+    "model.center_div_lambda=0.1",
+    "model.gamma_reg_lambda=0.01",
+    "model.gamma_reg_target=-3.0"
+  ],
+  "use_residual_rbf": false,
+  "center_div_lambda": 0.1,
+  "gamma_reg_lambda": 0.01,
+  "robust_norm": false,
+  "rec_error_type": "mse"
+}
