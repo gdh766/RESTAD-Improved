@@ -166,6 +166,12 @@ thesis/results/**/*.pth
 thesis/results/**/*.npz
 thesis/results/**/*.tar.gz
 
+# per-run hydra config dumps. Redundant with the overrides/variant/seed/protocol
+# fields already recorded in metrics.json, but there are 420 of them.
+# Note: this pattern is scoped to thesis/results/ so that restad/configs/*.yaml
+# (the actual model configuration) stays tracked.
+thesis/results/**/config.yaml
+
 # run logs
 thesis/*.log
 thesis/*.err
